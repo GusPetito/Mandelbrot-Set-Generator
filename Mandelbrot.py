@@ -2,6 +2,7 @@ import numpy as np
 import time
 import pygame
 import matplotlib.pyplot as plt
+import math
 
 #The recursive function to be used in generating the set
 def generatingFunc(z, constant):
@@ -81,8 +82,7 @@ def toGreen(vals):
     b = g / 1.3
     return combineColors(r, g, b)
 
-def generatePointsNumpy(xRange, yRange, screen, maxIt, growthFactor):
-    length, height = screen.get_size()
+def generatePointsNumpy(xRange, yRange, length, height, maxIt, growthFactor):
     x = np.linspace(xRange[0], xRange[1], length)
     y = np.linspace(yRange[0], yRange[1], height)
     isIn = np.full((length, height), True, dtype=bool)
@@ -102,44 +102,73 @@ def generatePointsNumpy(xRange, yRange, screen, maxIt, growthFactor):
     #plt.show()
 
 #Returns the graph points from the mouse positions
-def getPoints(xRange, yRange, rect, screen):
-    xScale = (xRange[1] - xRange[0]) / screen.get_size()[0]
-    yScale = (yRange[1] - yRange[0]) / screen.get_size()[1]
-    xRangeNew = (xRange[0] + xScale * rect.left, xRange[0] + xScale * rect.right)
-    yRangeNew = (yRange[0] + yScale * rect.top, yRange[0] + yScale * rect.bottom)
-    return (xRangeNew, yRangeNew)
+def getPoints(xRange, yRange, rect, length, height, infoPanelHeight):
+    topLeft = getPoint(xRange, yRange, rect.topleft, length, height, infoPanelHeight)
+    bottomRight = getPoint(xRange, yRange, rect.bottomright, length, height, infoPanelHeight)
+    if(topLeft[0] > bottomRight[0]): topLeft, bottomRight = bottomRight, topLeft
+    return ((topLeft[0], bottomRight[0]), (topLeft[1], bottomRight[1]))
+
+#Returns the graph point associated with the screen point
+def getPoint(xRange, yRange, point, length, height, infoPanelHeight):
+    if(point[1] < infoPanelHeight): point = (point[0], infoPanelHeight)
+    xScale = (xRange[1] - xRange[0]) / length
+    yScale = (yRange[1] - yRange[0]) / height
+    return(xRange[0] + xScale * point[0], yRange[0] + yScale * (point[1]-infoPanelHeight))
 
 #Returns a numpy rectangle object based on mouse coordinates.
 #The initialPos is always correct, but the currentPos corner will be modified to keep the screen dimensions
-def getRect(initialPos, currentPos, screenRatio):
-    tempWidth = currentPos[0] - initialPos[0]
-    tempHeight = (1/screenRatio) * tempWidth
+#Does not allow you to go into the info panel
+def getRect(initialPos, currentPos, screenRatio, infoPanelHeight):
+    if(currentPos[1] < infoPanelHeight): currentPos = (currentPos[0], infoPanelHeight)
+    tempHeight = currentPos[1] - initialPos[1]
+    tempWidth = screenRatio * tempHeight
     return pygame.Rect(initialPos, (tempWidth,tempHeight))
 
 def main():
     pygame.init()
+    pygame.font.init()
 
     #Size of screen
-    #displayInfo = pygame.display.Info()
-    screenWidth = 1200
-    screenHeight = 800
-    screenRatio = screenWidth/screenHeight
+    displayInfo = pygame.display.Info()
+    infoPanelHeight = 100
+    screenWidth = displayInfo.current_w
+    screenHeight = displayInfo.current_h-100
+    graphWidth = screenWidth
+    graphHeight = screenHeight - infoPanelHeight
+    graphRatio = graphWidth/graphHeight
+
     #Limits of graph
-    xRange = (-2,1)
-    yRange = (-1,1)
+    minInitialXRange = (-2.25,1)
+    minXLength = minInitialXRange[1] - minInitialXRange[0]
+    minInitialYRange = (-1.25, 1.25)
+    minYLength = minInitialYRange[1] - minInitialYRange[0]
+    minRatio = minXLength / minYLength
+
+    #Additional range needed to keep correct resolution
+    xOffset = 0
+    yOffset = 0
+    if(minRatio > graphRatio):
+        yOffset = ((1/graphRatio) * minXLength) - minYLength
+    elif(minRatio < graphRatio):
+        xOffset = (graphRatio * minYLength) - minXLength
+    xRange = (minInitialXRange[0] - (xOffset/2), minInitialXRange[1] + (xOffset/2))
+    yRange = (minInitialYRange[0] - (yOffset/2), minInitialYRange[1] + (yOffset/2))
+
     #Aesthetic
     growthFactor = 1/2
     maxIt = 200
     rectColor = (255,255,255)
+    default_font = pygame.font.Font(pygame.font.get_default_font(), 15)
+    decimal_count = 3
 
     screen = pygame.display.set_mode((screenWidth,screenHeight))
 
     #If a new mandelbrot image needs to be generated
     needToGenerate = False
 
-    brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, screen, 50, growthFactor))
-    screen.blit(brotImage, (0,0))
-    screen.fill((255,0,0))
+    brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, maxIt, growthFactor))
+    screen.blit(brotImage, (0,infoPanelHeight))
+    screen.fill((255,255,255))
     #Position of where the mouse was held down, if at all
     mouseInitialPos = None
     # main loop
@@ -147,18 +176,20 @@ def main():
     while running:
 
         if(needToGenerate):
-            brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, screen, maxIt, growthFactor))
-            screen.blit(brotImage, (0,0))
+            brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, maxIt, growthFactor))
             needToGenerate = False
 
         #Refresh background
-        screen.blit(brotImage, (0,0))
+        screen.fill((255,255,255))
+        current_point = getPoint(xRange, yRange, pygame.mouse.get_pos(), graphWidth, graphHeight, infoPanelHeight)
+        text_surface = default_font.render(f"Current point: {round(current_point[0], decimal_count)} + {round(current_point[1], decimal_count)}j", True, (0,0,0))
+        screen.blit(text_surface, (0,0))
+        screen.blit(brotImage, (0,infoPanelHeight))
 
         #The mouse is held down
         if(mouseInitialPos != None):
             tempPos = pygame.mouse.get_pos()
-            pygame.draw.rect(screen, rectColor, getRect(mouseInitialPos, tempPos, screenRatio), 2)
-
+            pygame.draw.rect(screen, rectColor, getRect(mouseInitialPos, tempPos, graphRatio, infoPanelHeight), 2)
         # event handling, gets all event from the event queue
         for event in pygame.event.get():
             #Quit
@@ -166,12 +197,16 @@ def main():
                 running = False
             #Mouse events
             elif(event.type == pygame.MOUSEBUTTONDOWN):
-                mouseInitialPos = event.pos
+                tempPos = event.pos
+                if(tempPos[1] > infoPanelHeight):
+                    mouseInitialPos = tempPos
             elif(event.type == pygame.MOUSEBUTTONUP):
-                tempPos = pygame.mouse.get_pos()
-                xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos, screenRatio), screen)
-                mouseInitialPos = None
-                needToGenerate = True
+                if(mouseInitialPos != None):
+                    tempPos = pygame.mouse.get_pos()
+                    #This will depend on the currest resolution of the points, so the whole program's stretching or shrinking will depend on the initial range of values
+                    xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos, graphRatio, infoPanelHeight), graphWidth, graphHeight, infoPanelHeight)
+                    mouseInitialPos = None
+                    needToGenerate = True
 
         pygame.display.flip()
 
