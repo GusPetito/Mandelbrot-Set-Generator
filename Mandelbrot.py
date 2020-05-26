@@ -109,19 +109,21 @@ def getPoints(xRange, yRange, rect, screen):
     yRangeNew = (yRange[0] + yScale * rect.top, yRange[0] + yScale * rect.bottom)
     return (xRangeNew, yRangeNew)
 
-#Returns a numpy rectangle object based on mouse coordinates
-def getRect(initialPos, currentPos):
+#Returns a numpy rectangle object based on mouse coordinates.
+#The initialPos is always correct, but the currentPos corner will be modified to keep the screen dimensions
+def getRect(initialPos, currentPos, screenRatio):
     tempWidth = currentPos[0] - initialPos[0]
-    tempHeight = currentPos[1] - initialPos[1]
+    tempHeight = (1/screenRatio) * tempWidth
     return pygame.Rect(initialPos, (tempWidth,tempHeight))
 
 def main():
     pygame.init()
 
     #Size of screen
-    displayInfo = pygame.display.Info()
+    #displayInfo = pygame.display.Info()
     screenWidth = 1200
     screenHeight = 800
+    screenRatio = screenWidth/screenHeight
     #Limits of graph
     xRange = (-2,1)
     yRange = (-1,1)
@@ -134,8 +136,10 @@ def main():
 
     #If a new mandelbrot image needs to be generated
     needToGenerate = False
+
     brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, screen, 50, growthFactor))
     screen.blit(brotImage, (0,0))
+    screen.fill((255,0,0))
     #Position of where the mouse was held down, if at all
     mouseInitialPos = None
     # main loop
@@ -153,7 +157,7 @@ def main():
         #The mouse is held down
         if(mouseInitialPos != None):
             tempPos = pygame.mouse.get_pos()
-            pygame.draw.rect(screen, rectColor, getRect(mouseInitialPos, tempPos), 2)
+            pygame.draw.rect(screen, rectColor, getRect(mouseInitialPos, tempPos, screenRatio), 2)
 
         # event handling, gets all event from the event queue
         for event in pygame.event.get():
@@ -165,11 +169,11 @@ def main():
                 mouseInitialPos = event.pos
             elif(event.type == pygame.MOUSEBUTTONUP):
                 tempPos = pygame.mouse.get_pos()
-                xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos), screen)
+                xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos, screenRatio), screen)
                 mouseInitialPos = None
                 needToGenerate = True
 
-        pygame.display.update()
+        pygame.display.flip()
 
 main()
 #generatePointsNumpy(-2, 1, -1, 1, 1000, 666, 50, 1/3, 1)
