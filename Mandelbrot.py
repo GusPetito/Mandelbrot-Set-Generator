@@ -4,6 +4,7 @@ import pygame
 import matplotlib.pyplot as plt
 import math
 from NumberInputBox import NumberInputBox
+from EmptySpace import EmptySpace
 
 #The recursive function to be used in generating the set
 def generatingFunc(z, constant):
@@ -100,6 +101,8 @@ def redraw_background(screen, color, *drawing_lists):
                 if(isinstance(j, NumberInputBox)): #TODO: Make interface
                     j.top_left = current_pos
                     temp_surface = j.get_surface()
+                elif(isinstance(j, EmptySpace)):
+                    temp_surface = j.get_surface()
                 else:
                     temp_surface = j
                 screen.blit(temp_surface, current_pos)
@@ -147,7 +150,8 @@ def main():
     brot_color = (255,0,100)
 
     #Tool objects
-    growth_text = NumberInputBox((0,0), 50, 20, (200,200,200), default_font, str(growthFactor))
+    growth_text = NumberInputBox((0,0), 50, 20, (200,200,200), default_font, r'\d{,2}(\.\d{,2})?', str(growthFactor))
+    max_iter_box = NumberInputBox((0,0), 50, 20, (200,200,200), default_font, r'\d{,4}', str(maxIt))
 
     #<---------------------------------------------------------------->
 
@@ -156,7 +160,7 @@ def main():
     #If a new mandelbrot image needs to be generated
     needToGenerate = False
 
-    brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, maxIt, growth_text.get_factor(), brot_color))
+    brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor(), brot_color))
     screen.blit(brotImage, (0,infoPanelHeight))
     screen.fill((255,255,255))
     #Position of where the mouse was held down, if at all
@@ -169,7 +173,7 @@ def main():
     while running:
 
         if(needToGenerate):
-            brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, maxIt, growth_text.get_factor(), brot_color))
+            brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor(), brot_color))
             needToGenerate = False
 
         #Calculate and display the current position and range
@@ -182,7 +186,7 @@ def main():
         info_panel_drawing_list = [(0,0)]
         info_panel_drawing_list.append([current_range_surface])
         info_panel_drawing_list.append([current_surface])
-        info_panel_drawing_list.append([default_font.render('Growth Factor: ', True, (0,0,0)), growth_text])
+        info_panel_drawing_list.append([default_font.render('Growth Factor: ', True, (0,0,0)), growth_text] + [EmptySpace(20, 0)] + [default_font.render('Max iterations: ', True, (0,0,0)), max_iter_box])
 
         mandel_drawing_list = [(0,infoPanelHeight)]
         mandel_drawing_list.append([brotImage])
@@ -196,6 +200,7 @@ def main():
         # event handling, gets all event from the event queue
         for event in pygame.event.get():
             growth_text.handle_event(event)
+            max_iter_box.handle_event(event)
             #Quit
             if(event.type == pygame.QUIT):
                 running = False
@@ -207,10 +212,11 @@ def main():
             elif(event.type == pygame.MOUSEBUTTONUP):
                 if(mouseInitialPos != None):
                     tempPos = pygame.mouse.get_pos()
-                    #This will depend on the currest resolution of the points, so the whole program's stretching or shrinking will depend on the initial range of values
-                    xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos, graphRatio, infoPanelHeight), graphWidth, graphHeight, infoPanelHeight)
+                    if(tempPos != mouseInitialPos):
+                        #This will depend on the currest resolution of the points, so the whole program's stretching or shrinking will depend on the initial range of values
+                        xRange, yRange = getPoints(xRange, yRange, getRect(mouseInitialPos, tempPos, graphRatio, infoPanelHeight), graphWidth, graphHeight, infoPanelHeight)
+                        needToGenerate = True
                     mouseInitialPos = None
-                    needToGenerate = True
             #Key events
             elif(event.type == pygame.KEYDOWN):
                 if(event.key == pygame.K_RETURN):

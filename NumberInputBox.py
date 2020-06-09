@@ -2,7 +2,7 @@ import pygame
 import re
 
 class NumberInputBox():
-    def __init__(self, top_left, length, height, color, font, text = ''):
+    def __init__(self, top_left, length, height, color, font, regex_to_match, text = ''):
         self.top_left = top_left
         self.length = length
         self.height = height
@@ -10,7 +10,7 @@ class NumberInputBox():
         self.text = text
         self.is_in_focus = False
         self.font = font
-        self.regex_to_match = r'\d{,2}(\.\d{,2})?'
+        self.regex_to_match = regex_to_match
 
     #Handles the mouse and keyboard events for a game
     def handle_event(self, event):
