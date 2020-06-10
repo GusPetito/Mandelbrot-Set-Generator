@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import math
 from NumberInputBox import NumberInputBox
 from EmptySpace import EmptySpace
+from ColorWheel import ColorWheel
 
 #The recursive function to be used in generating the set
 def generatingFunc(z, constant):
@@ -46,7 +47,7 @@ def toColor(vals, color):
     b *= ratio
     return combineColors(r, g, b)
 
-def generatePointsNumpy(xRange, yRange, length, height, maxIt, growthFactor, brot_color):
+def generatePointsNumpy(xRange, yRange, length, height, maxIt, growthFactor):
     x = np.linspace(xRange[0], xRange[1], length)
     y = np.linspace(yRange[0], yRange[1], height)
     isIn = np.full((length, height), True, dtype=bool)
@@ -59,11 +60,8 @@ def generatePointsNumpy(xRange, yRange, length, height, maxIt, growthFactor, bro
         isIn[np.abs(z) > 2] = False
         mandelSet[isIn] = i
     mandelSet = np.power(mandelSet, 1/growthFactor)
-    mandelSet = toColor(mandelSet, brot_color)
 
     return mandelSet
-    #plt.imshow(mandelSet)
-    #plt.show()
 
 #Returns the graph points from the mouse positions
 def getPoints(xRange, yRange, rect, length, height, infoPanelHeight):
@@ -98,7 +96,7 @@ def redraw_background(screen, color, *drawing_lists):
         for i in range(1, len(drawing_list)):
             heights = []
             for j in drawing_list[i]:
-                if(isinstance(j, NumberInputBox)): #TODO: Make interface
+                if(isinstance(j, NumberInputBox) or isinstance(j, ColorWheel)): #TODO: Make interface
                     j.top_left = current_pos
                     temp_surface = j.get_surface()
                 elif(isinstance(j, EmptySpace)):
@@ -152,6 +150,7 @@ def main():
     #Tool objects
     growth_text = NumberInputBox((0,0), 50, 20, (200,200,200), default_font, r'\d{,2}(\.\d{,2})?', str(growthFactor))
     max_iter_box = NumberInputBox((0,0), 50, 20, (200,200,200), default_font, r'\d{,4}', str(maxIt))
+    color_wheel = ColorWheel(400, 60)
 
     #<---------------------------------------------------------------->
 
@@ -159,8 +158,11 @@ def main():
 
     #If a new mandelbrot image needs to be generated
     needToGenerate = False
+    #If the color needs to be changed
+    redo_color = False
 
-    brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor(), brot_color))
+    brot_points = generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor())
+    brotImage = pygame.surfarray.make_surface(toColor(brot_points, brot_color))
     screen.blit(brotImage, (0,infoPanelHeight))
     screen.fill((255,255,255))
     #Position of where the mouse was held down, if at all
@@ -173,8 +175,13 @@ def main():
     while running:
 
         if(needToGenerate):
-            brotImage = pygame.surfarray.make_surface(generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor(), brot_color))
+            brot_points = generatePointsNumpy(xRange, yRange, graphWidth, graphHeight, int(max_iter_box.get_factor()), growth_text.get_factor())
+            brotImage = pygame.surfarray.make_surface(toColor(brot_points, brot_color))
             needToGenerate = False
+
+        if(redo_color):
+            brotImage = pygame.surfarray.make_surface(toColor(brot_points, brot_color))
+            redo_color = False
 
         #Calculate and display the current position and range
         current_range = getPoints(xRange, yRange, pygame.Rect((0,infoPanelHeight),(graphWidth,graphHeight)),graphWidth,graphHeight,infoPanelHeight)
@@ -186,7 +193,7 @@ def main():
         info_panel_drawing_list = [(0,0)]
         info_panel_drawing_list.append([current_range_surface])
         info_panel_drawing_list.append([current_surface])
-        info_panel_drawing_list.append([default_font.render('Growth Factor: ', True, (0,0,0)), growth_text] + [EmptySpace(20, 0)] + [default_font.render('Max iterations: ', True, (0,0,0)), max_iter_box])
+        info_panel_drawing_list.append([default_font.render('Growth Factor: ', True, (0,0,0)), growth_text] + [EmptySpace(20, 0)] + [default_font.render('Max iterations: ', True, (0,0,0)), max_iter_box] + [EmptySpace(20, 0)] + [default_font.render('Colors: ', True, (0,0,0)), color_wheel])
 
         mandel_drawing_list = [(0,infoPanelHeight)]
         mandel_drawing_list.append([brotImage])
@@ -201,6 +208,9 @@ def main():
         for event in pygame.event.get():
             growth_text.handle_event(event)
             max_iter_box.handle_event(event)
+            if(color_wheel.handle_event(event)):
+                brot_color = color_wheel.handle_event(event)
+                redo_color = True
             #Quit
             if(event.type == pygame.QUIT):
                 running = False
