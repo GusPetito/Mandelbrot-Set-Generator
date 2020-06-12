@@ -30,7 +30,6 @@ class NumberInputBox():
     #Add the key to the text
     def try_to_add_text(self, key):
         temp_text = (self.text + pygame.key.name(key)) if key != pygame.K_BACKSPACE else self.text[:-1]
-        print(temp_text)
         #Make sure the new text matches the given regex. If not, do not update text
         if(re.fullmatch(self.regex_to_match, temp_text)):
             self.text = temp_text
