@@ -10,7 +10,7 @@ Just a simple, interactive Mandelbrot Set generator using Numpy and Pygame.
 - Pygame
 - Numpy
 
-### installation instructions
+### Installation instructions
 Inside your virtual environment, run
 `pip install -r requirements.txt`
 to install the dependencies.
