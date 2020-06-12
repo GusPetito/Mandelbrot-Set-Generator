@@ -1,4 +1,4 @@
-# Mandelbrot-Set-Generator
+# Mandelbrot Set Generator
 Just a simple, interactive Mandelbrot Set generator using Numpy and Pygame.
 
 ### Features
@@ -9,3 +9,8 @@ Just a simple, interactive Mandelbrot Set generator using Numpy and Pygame.
 ### Dependencies
 - Pygame
 - Numpy
+
+### installation instructions
+Inside your virtual environment, run
+`pip install -r requirements.txt`
+to install the dependencies.
