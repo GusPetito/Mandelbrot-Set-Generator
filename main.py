@@ -1,11 +1,10 @@
 import numpy as np
 import time
 import pygame
-import matplotlib.pyplot as plt
 import math
-from NumberInputBox import NumberInputBox
-from EmptySpace import EmptySpace
-from ColorWheel import ColorWheel
+from classes.NumberInputBox import NumberInputBox
+from classes.EmptySpace import EmptySpace
+from classes.ColorWheel import ColorWheel
 
 #The recursive function to be used in generating the set
 def generatingFunc(z, constant):
@@ -154,7 +153,7 @@ def main():
 
     #<---------------------------------------------------------------->
 
-    screen = pygame.display.set_mode((screenWidth,screenHeight))
+    screen = pygame.display.set_mode(size=(screenWidth,screenHeight))
 
     #If a new mandelbrot image needs to be generated
     needToGenerate = False
@@ -205,7 +204,8 @@ def main():
             tempPos = pygame.mouse.get_pos()
             pygame.draw.rect(screen, rectColor, getRect(mouseInitialPos, tempPos, graphRatio, infoPanelHeight), 2)
         # event handling, gets all event from the event queue
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        for event in events:
             growth_text.handle_event(event)
             max_iter_box.handle_event(event)
             if(color_wheel.handle_event(event)):
